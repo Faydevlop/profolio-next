@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import TransitionLink from "@/components/transition-link";
 import { getProjectById, getSectionVisibility } from "@/lib/content-store";
@@ -5,6 +6,46 @@ import { getProjectById, getSectionVisibility } from "@/lib/content-store";
 type ProjectDetailsPageProps = {
   params: Promise<{ id: string }>;
 };
+
+/* ── Dynamic metadata for each project ── */
+export async function generateMetadata({ params }: ProjectDetailsPageProps): Promise<Metadata> {
+  const { id } = await params;
+  const project = await getProjectById(id);
+
+  if (!project) {
+    return { title: "Project Not Found" };
+  }
+
+  const description = project.description.slice(0, 160) || `${project.title} — a ${project.category} project by Fayis Namiyath.`;
+  const ogImage = project.mainImageUrl || project.imageUrl || undefined;
+
+  return {
+    title: `${project.title} — ${project.category} Project`,
+    description,
+    keywords: [
+      project.title,
+      project.category,
+      "Fayis Namiyath project",
+      "web development Kerala",
+      ...project.stack,
+    ],
+    openGraph: {
+      title: `${project.title} — Fayis Namiyath`,
+      description,
+      type: "article",
+      images: ogImage ? [{ url: ogImage, alt: project.title }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${project.title} — Fayis Namiyath`,
+      description,
+      images: ogImage ? [ogImage] : undefined,
+    },
+    alternates: {
+      canonical: `/projects/${id}`,
+    },
+  };
+}
 
 export default async function ProjectDetailsPage({ params }: ProjectDetailsPageProps) {
   const { id } = await params;
@@ -15,6 +56,8 @@ export default async function ProjectDetailsPage({ params }: ProjectDetailsPageP
     notFound();
   }
 
+  const siteUrl = process.env.SITE_URL || "http://localhost:3000";
+
   const uniqueImages = Array.from(new Set(project.images));
   const mainImage = project.mainImageUrl || project.imageUrl || uniqueImages[0] || null;
   const galleryImages = uniqueImages.filter((imageUrl) => imageUrl !== mainImage);
@@ -23,8 +66,70 @@ export default async function ProjectDetailsPage({ params }: ProjectDetailsPageP
     .map((part) => part.trim())
     .filter(Boolean);
 
+  /* JSON-LD: CreativeWork for the project */
+  const projectJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CreativeWork",
+    name: project.title,
+    description: project.description.slice(0, 300),
+    url: `${siteUrl}/projects/${project.id}`,
+    image: mainImage || undefined,
+    dateCreated: project.createdAt,
+    genre: project.category,
+    keywords: project.stack.join(", "),
+    author: {
+      "@type": "Person",
+      name: "Fayis Namiyath",
+      url: siteUrl,
+    },
+    creator: {
+      "@type": "Person",
+      name: "Fayis Namiyath",
+    },
+  };
+
+  /* JSON-LD: BreadcrumbList */
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: siteUrl,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Projects",
+        item: `${siteUrl}/projects`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: project.title,
+        item: `${siteUrl}/projects/${project.id}`,
+      },
+    ],
+  };
+
   return (
     <main className="project-details-page">
+      {/* Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(projectJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
+
       {/* Navigation bar */}
       <nav className="project-details-nav">
         <TransitionLink href="/projects" className="project-back-link">

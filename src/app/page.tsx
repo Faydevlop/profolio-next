@@ -35,8 +35,129 @@ export default async function Home({ searchParams }: PageProps) {
   const reviews = reviewsDb;
   const faqs = faqsDb;
 
+  const siteUrl = process.env.SITE_URL || "http://localhost:3000";
+
+  /* ── JSON-LD: Person + ProfessionalService ── */
+  const personJsonLd = {
+    "@context": "https://schema.org",
+    "@type": ["Person", "ProfessionalService"],
+    name: hero.name,
+    alternateName: "Fayis Namiyath",
+    jobTitle: hero.roleLine,
+    description: hero.introText,
+    url: siteUrl,
+    email: hero.contactEmail,
+    telephone: hero.contactPhone,
+    image: hero.heroImageUrl || undefined,
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: hero.contactLocation,
+      addressRegion: "Kerala",
+      addressCountry: "IN",
+    },
+    sameAs: [
+      hero.socialInstagram,
+      hero.socialDribbble,
+      hero.socialBehance,
+      hero.socialLinkedIn,
+    ].filter(Boolean),
+    knowsAbout: [
+      "Web Development",
+      "Web Design",
+      "UI/UX Design",
+      "React",
+      "Next.js",
+      "Node.js",
+      "Full-Stack Development",
+      "JavaScript",
+      "TypeScript",
+      "MongoDB",
+      "Frontend Development",
+      "Responsive Design",
+    ],
+    areaServed: [
+      { "@type": "Country", name: "India" },
+      { "@type": "State", name: "Kerala" },
+    ],
+    priceRange: "$$",
+  };
+
+  /* ── JSON-LD: WebSite with SearchAction ── */
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: `${hero.name} — Portfolio`,
+    alternateName: "Fayis Namiyath Portfolio",
+    url: siteUrl,
+    description:
+      "Professional portfolio of Fayis Namiyath — a top-rated full-stack web developer and UI/UX designer from Kerala, India.",
+    author: {
+      "@type": "Person",
+      name: hero.name,
+    },
+  };
+
+  /* ── JSON-LD: FAQPage (when FAQs are visible) ── */
+  const faqJsonLd =
+    sectionVisibility.faqs && faqs.length > 0
+      ? {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: faqs.map((item) => ({
+          "@type": "Question",
+          name: item.question,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: item.answer,
+          },
+        })),
+      }
+      : null;
+
+  /* ── JSON-LD: BreadcrumbList ── */
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: siteUrl,
+      },
+    ],
+  };
+
   return (
     <main className="portfolio">
+      {/* Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(personJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(websiteJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
+      {faqJsonLd ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(faqJsonLd).replace(/</g, "\\u003c"),
+          }}
+        />
+      ) : null}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
+
       <div className="page-shell">
         <header className="topbar">
           <p className="brand">{hero.name}</p>
