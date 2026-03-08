@@ -1,288 +1,319 @@
-type WorkItem = {
-  title: string;
-  category: string;
-  year: string;
+import { createEnquiryAction } from "@/app/actions/public-actions";
+import { getHeroContent, getSectionVisibility, listContent } from "@/lib/content-store";
+import TransitionLink from "@/components/transition-link";
+import ReviewQuote from "@/components/review-quote";
+
+type PageProps = {
+  searchParams: Promise<{ enquiry?: string }>;
 };
 
-type ServiceItem = {
-  index: string;
-  title: string;
-  description: string;
-};
-
-type ReviewItem = {
-  name: string;
-  role: string;
-  quote: string;
-};
-
-type BlogItem = {
-  title: string;
-  excerpt: string;
-  meta: string;
-};
-
-const works: WorkItem[] = [
-  { title: "Bright Leaf", category: "Branding", year: "2026" },
-  { title: "Macbook Mockup", category: "UI Design", year: "2025" },
-  { title: "Green App", category: "Product", year: "2026" },
-  { title: "Yellow OS", category: "Mobile", year: "2025" },
-  { title: "Neon Admin", category: "SaaS", year: "2026" },
-  { title: "Craftwork", category: "Campaign", year: "2024" },
-];
-
-const services: ServiceItem[] = [
-  {
-    index: "01",
-    title: "Branding Identity",
-    description:
-      "Positioning, visual language, and art direction for products that need a distinct voice.",
-  },
-  {
-    index: "02",
-    title: "Product Design",
-    description:
-      "Website and app experiences with clear hierarchy, faster flows, and conversion-focused UI.",
-  },
-  {
-    index: "03",
-    title: "Web Development",
-    description:
-      "Next.js websites with reusable components, smooth interactions, and strong performance.",
-  },
-  {
-    index: "04",
-    title: "Digital Marketing",
-    description:
-      "Landing pages and campaign creatives built for measurable growth and better quality leads.",
-  },
-];
-
-const reviews: ReviewItem[] = [
-  {
-    name: "Marcus Lee",
-    role: "Founder, Orbin",
-    quote:
-      "The new site instantly improved how clients perceived us. The structure and polish feel premium.",
-  },
-  {
-    name: "Kira Grant",
-    role: "Marketing Lead, NeoCom",
-    quote:
-      "Fast delivery, clean process, and excellent communication from kickoff to launch.",
-  },
-  {
-    name: "Jared Hall",
-    role: "CEO, Fluxline",
-    quote:
-      "Our conversion rate moved up after launch. The design system also made updates much easier.",
-  },
-  {
-    name: "Emil Rowe",
-    role: "Product Manager, Avra",
-    quote:
-      "Exactly the direction we wanted: minimal, sharp, and deeply practical for a growing team.",
-  },
-];
-
-const blogItems: BlogItem[] = [
-  {
-    title: "Designing for speed without losing personality",
-    excerpt:
-      "A practical framework for balancing aesthetics, performance, and project constraints.",
-    meta: "Design - 7 min read",
-  },
-  {
-    title: "How I structure scalable Next.js portfolios",
-    excerpt:
-      "From sections to components to content strategy, a reusable setup for client projects.",
-    meta: "Development - 9 min read",
-  },
-  {
-    title: "Art direction cues that elevate product pages",
-    excerpt:
-      "Simple visual decisions that create depth, trust, and stronger conversion moments.",
-    meta: "Branding - 6 min read",
-  },
-];
-
-function ImageSlot({
-  label,
-  className,
-}: {
-  label: string;
+type MediaSlotProps = {
   className?: string;
-}) {
+  imageUrl?: string | null;
+  alt?: string;
+};
+function MediaSlot({ className, imageUrl, alt }: MediaSlotProps) {
+  const slotClassName = `image-slot ${className ?? ""} ${imageUrl ? "has-image" : "is-empty"}`.trim();
+
   return (
-    <div className={`image-slot ${className ?? ""}`}>
-      <span>{label}</span>
+    <div className={slotClassName}>
+      {imageUrl ? <img src={imageUrl} alt={alt ?? "Portfolio image"} /> : <span>Image placeholder</span>}
     </div>
   );
 }
 
-export default function Home() {
+export default async function Home({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const sectionVisibility = await getSectionVisibility();
+  const hero = await getHeroContent();
+  const { projects: projectsDb, services: servicesDb, blogs: blogsDb, reviews: reviewsDb, faqs: faqsDb } =
+    await listContent();
+
+  const projects = projectsDb;
+  const services = servicesDb;
+  const blogs = blogsDb;
+  const reviews = reviewsDb;
+  const faqs = faqsDb;
+
+  const siteUrl = process.env.SITE_URL || "http://localhost:3000";
+
+  /* ── JSON-LD: Person + ProfessionalService ── */
+  const personJsonLd = {
+    "@context": "https://schema.org",
+    "@type": ["Person", "ProfessionalService"],
+    name: hero.name,
+    alternateName: "Fayis Namiyath",
+    jobTitle: hero.roleLine,
+    description: hero.introText,
+    url: siteUrl,
+    email: hero.contactEmail,
+    telephone: hero.contactPhone,
+    image: hero.heroImageUrl || undefined,
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: hero.contactLocation,
+      addressRegion: "Kerala",
+      addressCountry: "IN",
+    },
+    sameAs: [
+      hero.socialInstagram,
+      hero.socialDribbble,
+      hero.socialBehance,
+      hero.socialLinkedIn,
+    ].filter(Boolean),
+    knowsAbout: [
+      "Web Development",
+      "Web Design",
+      "UI/UX Design",
+      "React",
+      "Next.js",
+      "Node.js",
+      "Full-Stack Development",
+      "JavaScript",
+      "TypeScript",
+      "MongoDB",
+      "Frontend Development",
+      "Responsive Design",
+    ],
+    areaServed: [
+      { "@type": "Country", name: "India" },
+      { "@type": "State", name: "Kerala" },
+    ],
+    priceRange: "$$",
+  };
+
+  /* ── JSON-LD: WebSite with SearchAction ── */
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: `${hero.name} — Portfolio`,
+    alternateName: "Fayis Namiyath Portfolio",
+    url: siteUrl,
+    description:
+      "Professional portfolio of Fayis Namiyath — a top-rated full-stack web developer and UI/UX designer from Kerala, India.",
+    author: {
+      "@type": "Person",
+      name: hero.name,
+    },
+  };
+
+  /* ── JSON-LD: FAQPage (when FAQs are visible) ── */
+  const faqJsonLd =
+    sectionVisibility.faqs && faqs.length > 0
+      ? {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: faqs.map((item) => ({
+          "@type": "Question",
+          name: item.question,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: item.answer,
+          },
+        })),
+      }
+      : null;
+
+  /* ── JSON-LD: BreadcrumbList ── */
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: siteUrl,
+      },
+    ],
+  };
+
   return (
     <main className="portfolio">
+      {/* Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(personJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(websiteJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
+      {faqJsonLd ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(faqJsonLd).replace(/</g, "\\u003c"),
+          }}
+        />
+      ) : null}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
+
       <div className="page-shell">
         <header className="topbar">
-          <p className="brand">Miller.S</p>
+          <p className="brand">{hero.name}</p>
           <nav aria-label="Primary">
-            <a href="#work">Work</a>
-            <a href="#services">Services</a>
-            <a href="#reviews">Reviews</a>
-            <a href="#blog">Blog</a>
+            {sectionVisibility.projects ? <a href="#work">Work</a> : null}
+            {sectionVisibility.services ? <a href="#services">Services</a> : null}
+            {sectionVisibility.reviews ? <a href="#reviews">Reviews</a> : null}
+            {sectionVisibility.blogs ? <a href="#blog">Blog</a> : null}
           </nav>
           <a className="talk-btn" href="#contact">
             Let&apos;s talk
           </a>
         </header>
 
-        <section className="hero" id="home">
-          <h1 className="hero-name">Miller Smith</h1>
-          <div className="hero-meta">
-            <p>Based in New York</p>
-            <p>UI Designer &amp; Art Director</p>
-            <p>Available for projects</p>
-          </div>
-          <p className="hero-intro">
-            [A visionary Art Director from New York, showcases a portfolio of
-            visually stunning campaigns that blend artistry and innovation]
-          </p>
-          <ImageSlot label="Portrait Image Placeholder" className="portrait-slot" />
-        </section>
+        {sectionVisibility.hero ? (
+          <section className="hero" id="home">
+            <h1 className="hero-name">{hero.name}</h1>
+            <div className="hero-meta">
+              <p>{hero.locationLine}</p>
+              <p>{hero.roleLine}</p>
+              <p>{hero.availabilityLine}</p>
+            </div>
+            <p className="hero-intro">{hero.introText}</p>
+            <MediaSlot className="portrait-slot" imageUrl={hero.heroImageUrl} alt={hero.name} />
+          </section>
+        ) : null}
 
-        <section className="section-block" id="work">
-          <div className="section-head">
-            <h2>Selected Works</h2>
-            <p>Selected projects spanning branding, digital products, and campaigns.</p>
-          </div>
-          <div className="work-grid">
-            {works.map((work) => (
-              <article className="work-card" key={work.title}>
-                <ImageSlot label="Project Image Placeholder" className="work-slot" />
-                <div className="card-meta">
-                  <h3>{work.title}</h3>
-                  <p>
-                    {work.category} - {work.year}
-                  </p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
+        {sectionVisibility.projects ? (
+          <section className="section-block" id="work">
+            <div className="section-head">
+              <h2>Selected Works</h2>
+              <p>Selected projects spanning branding, digital products, and campaigns.</p>
+              <TransitionLink className="section-link-btn" href="/projects">
+                See all projects
+              </TransitionLink>
+            </div>
+            <div className="work-grid">
+              {projects.length === 0 ? <p className="section-empty">No projects added yet.</p> : null}
+              {projects.map((work) => (
+                <article className="work-card" key={work.id}>
+                  <TransitionLink href="/projects">
+                    <MediaSlot
+                      className="work-slot"
+                      imageUrl={work.imageUrl}
+                      alt={work.title}
+                    />
+                  </TransitionLink>
+                  <div className="card-meta">
+                    <h3>
+                      <TransitionLink href="/projects">{work.title}</TransitionLink>
+                    </h3>
+                    <p>
+                      {work.category} - {work.year}
+                    </p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
-        <section className="section-block services-block" id="services">
-          <div className="section-head">
-            <h2>Best Services</h2>
-            <p>End-to-end creative and development support for high-growth brands.</p>
-          </div>
-          <div className="service-list">
-            {services.map((service) => (
-              <article className="service-row" key={service.title}>
-                <p className="service-index">{service.index}</p>
-                <div className="service-copy">
-                  <h3>{service.title}</h3>
-                  <p>{service.description}</p>
-                </div>
-                <div className="service-thumbs">
-                  <ImageSlot label="Image" className="thumb-slot" />
-                  <ImageSlot label="Image" className="thumb-slot" />
-                  <ImageSlot label="Image" className="thumb-slot" />
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
+        {sectionVisibility.services ? (
+          <section className="section-block services-block" id="services">
+            <div className="section-head">
+              <h2>Best Services</h2>
+              <p>End-to-end creative and development support for high-growth brands.</p>
+            </div>
+            <div className="service-list">
+              {services.length === 0 ? <p className="section-empty">No services added yet.</p> : null}
+              {services.map((service, idx) => (
+                <article className="service-row" key={service.id}>
+                  <p className="service-index">{String(service.sortOrder || idx + 1).padStart(2, "0")}</p>
+                  <div className="service-copy">
+                    <h3>{service.title}</h3>
+                    <p>{service.description}</p>
+                  </div>
+                  <div className="service-thumbs">
+                    <MediaSlot
+                      className="thumb-slot"
+                      imageUrl={service.imageUrl}
+                      alt={service.title}
+                    />
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
-        <section className="partners-block">
-          <div className="partner-copy">
-            <h2>120+ Trusted Partners</h2>
-            <p>
-              Teams across SaaS, e-commerce, and startups trust my process to
-              ship clear and memorable digital experiences.
-            </p>
-          </div>
-          <div className="logo-grid">
-            {Array.from({ length: 8 }).map((_, index) => (
-              <div className="logo-item" key={`logo-${index + 1}`}>
-                Logo
-              </div>
-            ))}
-          </div>
-        </section>
+        {sectionVisibility.reviews ? (
+          <section className="section-block" id="reviews">
+            <div className="section-head">
+              <h2>Clients Reviews</h2>
+              <p>Feedback from recent collaborations and shipped projects.</p>
+            </div>
+            <div className="review-grid">
+              {reviews.length === 0 ? <p className="section-empty">No client reviews added yet.</p> : null}
+              {reviews.map((review) => (
+                <article className="review-card" key={review.id}>
+                  <MediaSlot
+                    className="review-slot"
+                    imageUrl={review.imageUrl}
+                    alt={review.name}
+                  />
+                  <ReviewQuote text={review.quote} />
+                  <div className="review-meta">
+                    <h3>{review.name}</h3>
+                    <p>{review.role}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
-        <section className="section-block" id="reviews">
-          <div className="section-head">
-            <h2>Clients Reviews</h2>
-            <p>Feedback from recent collaborations and shipped projects.</p>
-          </div>
-          <div className="review-grid">
-            {reviews.map((review) => (
-              <article className="review-card" key={review.name}>
-                <ImageSlot label="Client Image Placeholder" className="review-slot" />
-                <p className="quote">{review.quote}</p>
-                <div className="review-meta">
-                  <h3>{review.name}</h3>
-                  <p>{review.role}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
+        {sectionVisibility.faqs ? (
+          <section className="faq-block">
+            <div className="faq-copy">
+              <h2>FAQ</h2>
+              <p>Common questions about process, timelines, and what is needed to start your project.</p>
+            </div>
+            <div className="faq-list">
+              {faqs.length === 0 ? <p className="section-empty">No FAQ items added yet.</p> : null}
+              {faqs.map((item, index) => (
+                <details key={item.id} open={index === 0}>
+                  <summary>{item.question}</summary>
+                  <p>{item.answer}</p>
+                </details>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
-        <section className="faq-block">
-          <div className="faq-copy">
-            <h2>FAQ</h2>
-            <p>
-              Common questions about process, timelines, and what is needed to
-              start your project.
-            </p>
-          </div>
-          <div className="faq-list">
-            <details open>
-              <summary>Can you work with references of our existing designs?</summary>
-              <p>
-                Yes. I can align with your current brand language, then extend
-                it into a cleaner and more scalable system.
-              </p>
-            </details>
-            <details>
-              <summary>What is the typical timeline for a portfolio build?</summary>
-              <p>Most projects take 2 to 5 weeks depending on scope and content readiness.</p>
-            </details>
-            <details>
-              <summary>Do you offer both design and development?</summary>
-              <p>
-                Yes. Design, component system, and Next.js implementation can
-                be handled in one workflow.
-              </p>
-            </details>
-            <details>
-              <summary>What do I need before we begin?</summary>
-              <p>
-                Brand assets, copy direction, and sample references are enough
-                to start the first iteration.
-              </p>
-            </details>
-          </div>
-        </section>
-
-        <section className="section-block" id="blog">
-          <div className="section-head">
-            <h2>Blog &amp; Articles</h2>
-            <p>Insights around digital design, strategy, and modern web builds.</p>
-          </div>
-          <div className="blog-grid">
-            {blogItems.map((post) => (
-              <article className="blog-card" key={post.title}>
-                <ImageSlot label="Blog Image Placeholder" className="blog-slot" />
-                <p className="blog-meta">{post.meta}</p>
-                <h3>{post.title}</h3>
-                <p>{post.excerpt}</p>
-              </article>
-            ))}
-          </div>
-        </section>
+        {sectionVisibility.blogs ? (
+          <section className="section-block" id="blog">
+            <div className="section-head">
+              <h2>Blog &amp; Articles</h2>
+              <p>Insights around digital design, strategy, and modern web builds.</p>
+            </div>
+            <div className="blog-grid">
+              {blogs.length === 0 ? <p className="section-empty">No blog posts added yet.</p> : null}
+              {blogs.map((post) => (
+                <article className="blog-card" key={post.id}>
+                  <MediaSlot
+                    className="blog-slot"
+                    imageUrl={post.imageUrl}
+                    alt={post.title}
+                  />
+                  <p className="blog-meta">{post.meta}</p>
+                  <h3>{post.title}</h3>
+                  <p>{post.excerpt}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <footer className="footer" id="contact">
           <div className="footer-top">
@@ -290,43 +321,67 @@ export default function Home() {
               Have any project ideas in your mind?
               <span>Let&apos;s connect.</span>
             </p>
-            <a className="footer-mail" href="mailto:miller@gmail.com">
-              miller@gmail.com
+            <a className="footer-mail" href={`mailto:${hero.contactEmail}`}>
+              {hero.contactEmail}
             </a>
           </div>
+
+          <form action={createEnquiryAction} className="enquiry-form">
+            <h3>Send Enquiry</h3>
+            <div className="enquiry-grid">
+              <input name="name" placeholder="Your name" required />
+              <input name="email" type="email" placeholder="Email" required />
+              <input name="phone" placeholder="Phone (optional)" />
+              <input name="subject" placeholder="Subject (optional)" />
+              <textarea name="message" placeholder="Your message" rows={4} required />
+            </div>
+            <button type="submit">Send Message</button>
+            {params.enquiry === "sent" ? <p className="enquiry-success">Enquiry sent successfully.</p> : null}
+            {params.enquiry === "error" ? (
+              <p className="enquiry-error">Name, email, and message are required.</p>
+            ) : null}
+          </form>
 
           <div className="footer-links">
             <div>
               <h3>Menu</h3>
               <a href="#home">Home</a>
-              <a href="#work">Projects</a>
-              <a href="#services">Services</a>
-              <a href="#blog">Blog</a>
+              {sectionVisibility.projects ? <a href="#work">Projects</a> : null}
+              {sectionVisibility.services ? <a href="#services">Services</a> : null}
+              {sectionVisibility.blogs ? <a href="#blog">Blog</a> : null}
             </div>
             <div>
               <h3>Social</h3>
-              <a href="https://instagram.com" target="_blank" rel="noreferrer">
-                Instagram
-              </a>
-              <a href="https://dribbble.com" target="_blank" rel="noreferrer">
-                Dribbble
-              </a>
-              <a href="https://behance.net" target="_blank" rel="noreferrer">
-                Behance
-              </a>
-              <a href="https://linkedin.com" target="_blank" rel="noreferrer">
-                LinkedIn
-              </a>
+              {hero.socialInstagram ? (
+                <a href={hero.socialInstagram} target="_blank" rel="noreferrer">
+                  Instagram
+                </a>
+              ) : null}
+              {hero.socialDribbble ? (
+                <a href={hero.socialDribbble} target="_blank" rel="noreferrer">
+                  Dribbble
+                </a>
+              ) : null}
+              {hero.socialBehance ? (
+                <a href={hero.socialBehance} target="_blank" rel="noreferrer">
+                  Behance
+                </a>
+              ) : null}
+              {hero.socialLinkedIn ? (
+                <a href={hero.socialLinkedIn} target="_blank" rel="noreferrer">
+                  LinkedIn
+                </a>
+              ) : null}
             </div>
             <div>
               <h3>Contact</h3>
-              <a href="mailto:miller@gmail.com">miller@gmail.com</a>
-              <a href="tel:+11234567890">+1 123 456 7890</a>
-              <span>New York, US</span>
+              <a href={`mailto:${hero.contactEmail}`}>{hero.contactEmail}</a>
+              <a href={`tel:${hero.contactPhone.replace(/\s+/g, "")}`}>{hero.contactPhone}</a>
+              <span>{hero.contactLocation}</span>
             </div>
           </div>
 
-          <h2 className="footer-name">Miller Smith</h2>
+          <h2 className="footer-name">{hero.name}</h2>
         </footer>
       </div>
     </main>
