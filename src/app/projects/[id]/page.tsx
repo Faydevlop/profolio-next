@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import TransitionLink from "@/components/transition-link";
+import ProjectImageCarousel from "@/components/project-image-carousel";
 import { getProjectById, getSectionVisibility } from "@/lib/content-store";
 
 type ProjectDetailsPageProps = {
@@ -61,6 +62,7 @@ export default async function ProjectDetailsPage({ params }: ProjectDetailsPageP
   const uniqueImages = Array.from(new Set(project.images));
   const mainImage = project.mainImageUrl || project.imageUrl || uniqueImages[0] || null;
   const galleryImages = uniqueImages.filter((imageUrl) => imageUrl !== mainImage);
+  const allImages = mainImage ? [mainImage, ...galleryImages] : galleryImages;
   const descriptionParts = project.description
     .split(/\n+/)
     .map((part) => part.trim())
@@ -150,14 +152,10 @@ export default async function ProjectDetailsPage({ params }: ProjectDetailsPageP
         </div>
       </nav>
 
-      {/* Hero banner with main image */}
+      {/* Hero banner with image carousel */}
       <section className="project-hero-banner">
         <div className="project-hero-image-wrap">
-          {mainImage ? (
-            <img src={mainImage} alt={`${project.title} main cover`} />
-          ) : (
-            <div className="project-hero-empty">No project image added yet.</div>
-          )}
+          <ProjectImageCarousel images={allImages} alt={project.title} />
         </div>
       </section>
 
