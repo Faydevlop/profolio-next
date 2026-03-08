@@ -1,14 +1,91 @@
+import type { Metadata } from "next";
 import { getSectionVisibility, listContent } from "@/lib/content-store";
 import TransitionLink from "@/components/transition-link";
 
 export const dynamic = "force-dynamic";
 
+export const metadata: Metadata = {
+  title: "Projects — Web Development Portfolio",
+  description:
+    "Browse the complete project portfolio of Fayis Namiyath — case studies in web development, UI/UX design, React, Next.js, and full-stack applications built for clients across Kerala and India.",
+  keywords: [
+    "Fayis Namiyath projects",
+    "web development portfolio Kerala",
+    "React projects",
+    "Next.js projects",
+    "web design case studies",
+    "full-stack projects India",
+  ],
+  openGraph: {
+    title: "Projects — Fayis Namiyath Portfolio",
+    description:
+      "Case studies and projects by Fayis Namiyath — web development, UI/UX design, and full-stack applications.",
+    type: "website",
+  },
+  alternates: {
+    canonical: "/projects",
+  },
+};
+
 export default async function ProjectsPage() {
   const sectionVisibility = await getSectionVisibility();
   const { projects } = await listContent();
 
+  const siteUrl = process.env.SITE_URL || "http://localhost:3000";
+
+  /* JSON-LD: ItemList for projects */
+  const itemListJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "Web Development Projects by Fayis Namiyath",
+    description:
+      "A curated list of web development and design projects by Fayis Namiyath from Kerala, India.",
+    numberOfItems: projects.length,
+    itemListElement: projects.map((project, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: project.title,
+      url: `${siteUrl}/projects/${project.id}`,
+      description: project.description.slice(0, 160),
+    })),
+  };
+
+  /* JSON-LD: BreadcrumbList */
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: siteUrl,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Projects",
+        item: `${siteUrl}/projects`,
+      },
+    ],
+  };
+
   return (
     <main className="projects-page">
+      {/* Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(itemListJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
+
       <section className="projects-hero">
         <p>Portfolio</p>
         <h1>All Projects</h1>
