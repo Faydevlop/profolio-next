@@ -377,6 +377,7 @@ export async function deleteProjectAction(formData: FormData) {
   }
 
   revalidateAdminPages();
+  revalidatePath(`/projects/${id}`);
 }
 
 export async function updateProjectAction(formData: FormData) {
@@ -430,6 +431,7 @@ export async function updateProjectAction(formData: FormData) {
   }
 
   revalidateAdminPages();
+  revalidatePath(`/projects/${id}`);
 }
 
 export async function createServiceAction(
