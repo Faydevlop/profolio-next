@@ -14,7 +14,7 @@ type ProjectCardData = {
     gitRepo: string | null;
     liveLink: string | null;
 };
-
+ 
 type ProjectsGridProps = {
     projects: ProjectCardData[];
     totalCategories: number;
