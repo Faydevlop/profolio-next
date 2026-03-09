@@ -1,7 +1,7 @@
 "use client";
 
-import type { MouseEvent, ReactNode } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import type { ReactNode } from "react";
+import Link from "next/link";
 
 type TransitionLinkProps = {
   href: string;
@@ -10,47 +10,13 @@ type TransitionLinkProps = {
 };
 
 export default function TransitionLink({ href, className, children }: TransitionLinkProps) {
-  const router = useRouter();
-  const pathname = usePathname();
-
-  const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (
-      event.defaultPrevented ||
-      event.button !== 0 ||
-      event.metaKey ||
-      event.ctrlKey ||
-      event.shiftKey ||
-      event.altKey
-    ) {
-      return;
-    }
-
-    if (!href.startsWith("/")) {
-      return;
-    }
-
-    event.preventDefault();
-
-    if (pathname === href) {
-      return;
-    }
-
-    const navigate = () => router.push(href);
-    const doc = document as Document & {
-      startViewTransition?: (callback: () => void) => void;
-    };
-
-    if (typeof doc.startViewTransition === "function") {
-      doc.startViewTransition(navigate);
-      return;
-    }
-
-    navigate();
-  };
-
   return (
-    <a href={href} className={className} onClick={handleClick}>
+    <Link
+      href={href}
+      className={className}
+      prefetch={true}
+    >
       {children}
-    </a>
+    </Link>
   );
 }
