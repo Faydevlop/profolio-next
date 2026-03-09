@@ -2,6 +2,9 @@ import { createEnquiryAction } from "@/app/actions/public-actions";
 import { getHeroContent, getSectionVisibility, listContent } from "@/lib/content-store";
 import TransitionLink from "@/components/transition-link";
 import ReviewQuote from "@/components/review-quote";
+import { isSetupComplete } from "@/lib/setup";
+import SetupWizard from "@/components/setup-wizard";
+
 
 type PageProps = {
   searchParams: Promise<{ enquiry?: string }>;
@@ -24,7 +27,15 @@ function MediaSlot({ className, imageUrl, alt }: MediaSlotProps) {
 
 export default async function Home({ searchParams }: PageProps) {
   const params = await searchParams;
+
+  // First-time setup: show wizard if setup not complete
+  const setupDone = await isSetupComplete();
+  if (!setupDone) {
+    return <SetupWizard />;
+  }
+
   const sectionVisibility = await getSectionVisibility();
+
   const hero = await getHeroContent();
   const { projects: projectsDb, services: servicesDb, blogs: blogsDb, reviews: reviewsDb, faqs: faqsDb } =
     await listContent();

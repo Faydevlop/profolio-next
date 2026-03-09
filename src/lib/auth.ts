@@ -1,22 +1,35 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { jwtVerify, SignJWT } from "jose";
+import { getAdminConfig } from "@/lib/setup";
+import bcrypt from "bcryptjs";
 
 export const ADMIN_COOKIE_NAME = "admin_session";
-
-const tokenSecret = process.env.ADMIN_JWT_SECRET;
-
-if (!tokenSecret) {
-  throw new Error("Missing ADMIN_JWT_SECRET environment variable");
-}
-
-const secret = new TextEncoder().encode(tokenSecret);
 
 type AdminSessionPayload = {
   email: string;
 };
 
+async function getSecret(): Promise<Uint8Array | null> {
+  // Try env var first (backward compat for existing installs)
+  const envSecret = process.env.ADMIN_JWT_SECRET;
+  if (envSecret) {
+    return new TextEncoder().encode(envSecret);
+  }
+
+  // Fall back to MongoDB-stored secret (new installs via setup wizard)
+  const config = await getAdminConfig();
+  if (config?.jwtSecret) {
+    return new TextEncoder().encode(config.jwtSecret);
+  }
+
+  return null;
+}
+
 export async function createAdminSession(email: string) {
+  const secret = await getSecret();
+  if (!secret) throw new Error("No JWT secret configured");
+
   const token = await new SignJWT({ email })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
@@ -46,6 +59,9 @@ export async function getAdminSession(): Promise<AdminSessionPayload | null> {
     return null;
   }
 
+  const secret = await getSecret();
+  if (!secret) return null;
+
   try {
     const { payload } = await jwtVerify(token, secret);
     const email = payload.email;
@@ -70,13 +86,20 @@ export async function requireAdminSession() {
   return session;
 }
 
-export function isValidAdminCredentials(email: string, password: string) {
-  const adminEmail = process.env.ADMIN_EMAIL;
-  const adminPassword = process.env.ADMIN_PASSWORD;
+export async function isValidAdminCredentials(email: string, password: string) {
+  // Try env vars first (backward compat for existing installs)
+  const envEmail = process.env.ADMIN_EMAIL;
+  const envPassword = process.env.ADMIN_PASSWORD;
 
-  if (!adminEmail || !adminPassword) {
-    return false;
+  if (envEmail && envPassword) {
+    return email === envEmail && password === envPassword;
   }
 
-  return email === adminEmail && password === adminPassword;
+  // Fall back to MongoDB-stored credentials (new installs via setup wizard)
+  const config = await getAdminConfig();
+  if (!config) return false;
+
+  const emailMatch = email === config.email;
+  const passwordMatch = await bcrypt.compare(password, config.passwordHash);
+  return emailMatch && passwordMatch;
 }

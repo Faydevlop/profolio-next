@@ -1,17 +1,31 @@
 import { v2 as cloudinary } from "cloudinary";
+import { getAdminConfig } from "@/lib/setup";
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+let isConfigured = false;
 
-export function cloudinaryIsConfigured() {
-  return Boolean(
-    process.env.CLOUDINARY_CLOUD_NAME &&
-      process.env.CLOUDINARY_API_KEY &&
-      process.env.CLOUDINARY_API_SECRET,
-  );
+async function ensureConfigured() {
+  if (isConfigured) return;
+
+  const config = await getAdminConfig();
+
+  // Prioritize database config from onboarding
+  const cloudName = config?.cloudinaryCloudName || process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey = config?.cloudinaryApiKey || process.env.CLOUDINARY_API_KEY;
+  const apiSecret = config?.cloudinaryApiSecret || process.env.CLOUDINARY_API_SECRET;
+
+  if (cloudName && apiKey && apiSecret) {
+    cloudinary.config({
+      cloud_name: cloudName,
+      api_key: apiKey,
+      api_secret: apiSecret,
+    });
+    isConfigured = true;
+  }
+}
+
+export async function cloudinaryIsConfigured() {
+  await ensureConfigured();
+  return isConfigured;
 }
 
 type UploadableFile = {
@@ -20,8 +34,8 @@ type UploadableFile = {
 };
 
 export async function uploadImageToCloudinary(file: UploadableFile) {
-  if (!cloudinaryIsConfigured()) {
-    throw new Error("Cloudinary is not configured. Check your .env keys.");
+  if (!(await cloudinaryIsConfigured())) {
+    throw new Error("Cloudinary is not configured. Please complete the setup wizard.");
   }
 
   const bytes = await file.arrayBuffer();
@@ -40,7 +54,7 @@ export async function uploadImageToCloudinary(file: UploadableFile) {
         }
 
         resolve(result.secure_url);
-      },
+      }
     );
 
     stream.end(buffer);
@@ -81,7 +95,7 @@ function getCloudinaryPublicIdFromUrl(imageUrl: string) {
 }
 
 export async function deleteImageFromCloudinaryByUrl(imageUrl: string) {
-  if (!imageUrl || !cloudinaryIsConfigured()) {
+  if (!imageUrl || !(await cloudinaryIsConfigured())) {
     return false;
   }
 

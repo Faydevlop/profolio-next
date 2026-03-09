@@ -241,8 +241,8 @@ function mapHeroContent(input: Partial<Record<keyof HeroContent, unknown>>): Her
 function mapProjectItem(item: RawDoc): ProjectItem {
   const rawImages = Array.isArray(item.images)
     ? item.images
-        .map((value) => String(value ?? "").trim())
-        .filter((value) => value.length > 0)
+      .map((value) => String(value ?? "").trim())
+      .filter((value) => value.length > 0)
     : [];
   const legacyImageUrl = item.imageUrl ? String(item.imageUrl) : "";
   const mainImageValue = item.mainImageUrl ? String(item.mainImageUrl) : "";
@@ -257,8 +257,8 @@ function mapProjectItem(item: RawDoc): ProjectItem {
     description: String(item.description ?? ""),
     stack: Array.isArray(item.stack)
       ? item.stack
-          .map((value) => String(value ?? "").trim())
-          .filter((value) => value.length > 0)
+        .map((value) => String(value ?? "").trim())
+        .filter((value) => value.length > 0)
       : [],
     images,
     mainImageUrl,
@@ -336,6 +336,7 @@ export async function listContent(options: { includeHidden?: boolean } = {}): Pr
 
   try {
     const db = await getDatabase();
+    if (!db) return emptyStore;
 
     const [projectsRaw, servicesRaw, blogsRaw, reviewsRaw, faqsRaw, enquiriesRaw] = await Promise.all([
       db.collection("projects").find().sort({ createdAt: -1 }).toArray(),
@@ -368,6 +369,7 @@ export async function listContent(options: { includeHidden?: boolean } = {}): Pr
 export async function getSectionVisibility() {
   try {
     const db = await getDatabase();
+    if (!db) return defaultSectionVisibility;
     const settings = await db.collection<SectionVisibilityDoc>("settings").findOne({ _id: "section_visibility" });
     if (!settings) {
       return defaultSectionVisibility;
@@ -381,6 +383,7 @@ export async function getSectionVisibility() {
 
 export async function updateSectionVisibility(input: SectionVisibility) {
   const db = await getDatabase();
+  if (!db) return;
 
   await db.collection<SectionVisibilityDoc>("settings").updateOne(
     { _id: "section_visibility" },
@@ -397,6 +400,7 @@ export async function updateSectionVisibility(input: SectionVisibility) {
 export async function getHeroContent() {
   try {
     const db = await getDatabase();
+    if (!db) return defaultHeroContent;
     const settings = await db.collection<HeroContentDoc>("settings").findOne({ _id: "hero_content" });
     if (!settings) {
       return defaultHeroContent;
@@ -410,6 +414,7 @@ export async function getHeroContent() {
 
 export async function updateHeroContent(input: HeroContent) {
   const db = await getDatabase();
+  if (!db) return;
   const normalized = mapHeroContent(input as Partial<Record<keyof HeroContent, unknown>>);
 
   await db.collection<HeroContentDoc>("settings").updateOne(
@@ -426,6 +431,7 @@ export async function updateHeroContent(input: HeroContent) {
 
 export async function getProjectById(id: string) {
   const db = await getDatabase();
+  if (!db) return null;
   const objectId = toObjectId(id);
   if (!objectId) return null;
 
@@ -439,6 +445,7 @@ export type ProjectInput = Omit<ProjectItem, "id" | "createdAt">;
 
 export async function addProject(input: ProjectInput) {
   const db = await getDatabase();
+  if (!db) return;
   await db.collection("projects").insertOne({
     ...input,
     createdAt: new Date(),
@@ -447,6 +454,7 @@ export async function addProject(input: ProjectInput) {
 
 export async function updateProject(id: string, input: ProjectInput) {
   const db = await getDatabase();
+  if (!db) return;
   const objectId = toObjectId(id);
   if (!objectId) return;
 
@@ -462,6 +470,7 @@ export async function updateProject(id: string, input: ProjectInput) {
 
 export async function deleteProject(id: string) {
   const db = await getDatabase();
+  if (!db) return;
   const objectId = toObjectId(id);
   if (!objectId) return;
   await db.collection("projects").deleteOne({ _id: objectId });
@@ -469,6 +478,7 @@ export async function deleteProject(id: string) {
 
 export async function addService(input: Omit<ServiceItem, "id" | "createdAt">) {
   const db = await getDatabase();
+  if (!db) return;
   await db.collection("services").insertOne({
     ...input,
     createdAt: new Date(),
@@ -477,6 +487,7 @@ export async function addService(input: Omit<ServiceItem, "id" | "createdAt">) {
 
 export async function getServiceById(id: string) {
   const db = await getDatabase();
+  if (!db) return null;
   const objectId = toObjectId(id);
   if (!objectId) return null;
 
@@ -488,6 +499,7 @@ export async function getServiceById(id: string) {
 
 export async function updateService(id: string, input: Omit<ServiceItem, "id" | "createdAt">) {
   const db = await getDatabase();
+  if (!db) return;
   const objectId = toObjectId(id);
   if (!objectId) return;
 
@@ -503,6 +515,7 @@ export async function updateService(id: string, input: Omit<ServiceItem, "id" | 
 
 export async function deleteService(id: string) {
   const db = await getDatabase();
+  if (!db) return;
   const objectId = toObjectId(id);
   if (!objectId) return;
   await db.collection("services").deleteOne({ _id: objectId });
@@ -510,6 +523,7 @@ export async function deleteService(id: string) {
 
 export async function addBlog(input: Omit<BlogItem, "id" | "createdAt">) {
   const db = await getDatabase();
+  if (!db) return;
   await db.collection("blogs").insertOne({
     ...input,
     createdAt: new Date(),
@@ -518,6 +532,7 @@ export async function addBlog(input: Omit<BlogItem, "id" | "createdAt">) {
 
 export async function getBlogById(id: string) {
   const db = await getDatabase();
+  if (!db) return null;
   const objectId = toObjectId(id);
   if (!objectId) return null;
 
@@ -529,6 +544,7 @@ export async function getBlogById(id: string) {
 
 export async function updateBlog(id: string, input: Omit<BlogItem, "id" | "createdAt">) {
   const db = await getDatabase();
+  if (!db) return;
   const objectId = toObjectId(id);
   if (!objectId) return;
 
@@ -544,6 +560,7 @@ export async function updateBlog(id: string, input: Omit<BlogItem, "id" | "creat
 
 export async function deleteBlog(id: string) {
   const db = await getDatabase();
+  if (!db) return;
   const objectId = toObjectId(id);
   if (!objectId) return;
   await db.collection("blogs").deleteOne({ _id: objectId });
@@ -551,6 +568,7 @@ export async function deleteBlog(id: string) {
 
 export async function addReview(input: Omit<ReviewItem, "id" | "createdAt">) {
   const db = await getDatabase();
+  if (!db) return;
   await db.collection("reviews").insertOne({
     ...input,
     createdAt: new Date(),
@@ -559,6 +577,7 @@ export async function addReview(input: Omit<ReviewItem, "id" | "createdAt">) {
 
 export async function getReviewById(id: string) {
   const db = await getDatabase();
+  if (!db) return null;
   const objectId = toObjectId(id);
   if (!objectId) return null;
 
@@ -570,6 +589,7 @@ export async function getReviewById(id: string) {
 
 export async function updateReview(id: string, input: Omit<ReviewItem, "id" | "createdAt">) {
   const db = await getDatabase();
+  if (!db) return;
   const objectId = toObjectId(id);
   if (!objectId) return;
 
@@ -585,6 +605,7 @@ export async function updateReview(id: string, input: Omit<ReviewItem, "id" | "c
 
 export async function deleteReview(id: string) {
   const db = await getDatabase();
+  if (!db) return;
   const objectId = toObjectId(id);
   if (!objectId) return;
   await db.collection("reviews").deleteOne({ _id: objectId });
@@ -592,6 +613,7 @@ export async function deleteReview(id: string) {
 
 export async function addFaq(input: Omit<FaqItem, "id" | "createdAt">) {
   const db = await getDatabase();
+  if (!db) return;
   await db.collection("faqs").insertOne({
     ...input,
     createdAt: new Date(),
@@ -600,6 +622,7 @@ export async function addFaq(input: Omit<FaqItem, "id" | "createdAt">) {
 
 export async function updateFaq(id: string, input: Omit<FaqItem, "id" | "createdAt">) {
   const db = await getDatabase();
+  if (!db) return;
   const objectId = toObjectId(id);
   if (!objectId) return;
 
@@ -615,6 +638,7 @@ export async function updateFaq(id: string, input: Omit<FaqItem, "id" | "created
 
 export async function deleteFaq(id: string) {
   const db = await getDatabase();
+  if (!db) return;
   const objectId = toObjectId(id);
   if (!objectId) return;
   await db.collection("faqs").deleteOne({ _id: objectId });
@@ -622,6 +646,7 @@ export async function deleteFaq(id: string) {
 
 export async function addEnquiry(input: Omit<EnquiryItem, "id" | "createdAt" | "status">) {
   const db = await getDatabase();
+  if (!db) return;
   await db.collection("enquiries").insertOne({
     ...input,
     status: "NEW",
@@ -631,6 +656,7 @@ export async function addEnquiry(input: Omit<EnquiryItem, "id" | "createdAt" | "
 
 export async function updateEnquiryStatus(id: string, status: EnquiryStatus) {
   const db = await getDatabase();
+  if (!db) return;
   const objectId = toObjectId(id);
   if (!objectId) return;
   await db.collection("enquiries").updateOne(
@@ -645,6 +671,7 @@ export async function updateEnquiryStatus(id: string, status: EnquiryStatus) {
 
 export async function deleteEnquiry(id: string) {
   const db = await getDatabase();
+  if (!db) return;
   const objectId = toObjectId(id);
   if (!objectId) return;
   await db.collection("enquiries").deleteOne({ _id: objectId });
